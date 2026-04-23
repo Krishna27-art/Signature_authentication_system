@@ -1,0 +1,11 @@
+{
+  "description": "This file is a placeholder for exported biometric signature data.",
+  "instructions": "To populate this file with your real biometric data, log in to the dashboard and click 'Export Biometric Data'. Then, replace the contents of this file with the downloaded JSON.",
+  "template": null,
+  "threshold": 0.15,
+  "stats": {
+    "totalLogins": 0,
+    "lastLogin": null
+  },
+  "history": []
+}
