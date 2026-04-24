@@ -1,4 +1,4 @@
-# BioSign: Advanced Biometric Signature Authentication
+# signatre authentication system: Advanced Biometric Signature Authentication
 
 BioSign is a research-grade, client-side signature authentication system. It uses behavioral biometrics and dynamic time warping (DTW) to verify identity based not just on *what* you sign, but *how* you sign it.
 
