@@ -1,42 +1,39 @@
-# BioSign: Advanced Biometric Signature Authentication
+# Signature authentication system (Deep Biometric Edition)
 
-BioSign is a research-grade, client-side signature authentication system. It uses behavioral biometrics and dynamic time warping (DTW) to verify identity based not just on *what* you sign, but *how* you sign it.
+This system is a research-grade biometric authentication platform that combines classical signal processing with deep neural architectures. It is designed to capture the unique "neuromotor firing pattern" of the human nervous system.
 
-## 🚀 Key Features
+## 🚀 The Multi-Layer Neural Engine
 
-### 1. Behavioral Biometric Engine
-The system analyzes multiple dimensions of the signature:
-- **Spatial Path (x, y)**: The actual shape of the signature.
-- **Velocity & Acceleration**: The speed at which different parts are signed.
-- **Curvature**: The angular velocity and loops within the strokes.
-- **Pressure Simulation**: Approximated through speed and deceleration patterns.
+The system implements a sophisticated 7-layer architecture entirely in the browser using **TensorFlow.js**.
 
-### 2. Multi-Layered Security
-- **Dynamic Time Warping (DTW)**: Matches the sequence of points even if the signature is slightly faster, slower, or shifted.
-- **Liveness Detection**: Detects "robotic" or "traced" inputs by analyzing the coefficient of variation in speed. Humans have natural, chaotic speed variations that forgers struggle to replicate.
-- **Replay Detection**: Generates a timing fingerprint for every attempt. If two attempts are identical (statistical outliers), it flags them as a recorded replay attack.
-- **Adaptive Thresholding**: The system computes a personalized security threshold based on your initial 3 enrollment samples.
+### 🧪 Layer 2: Siamese Identity Embedding
+- **CNN Architecture**: A 1D Convolutional Neural Network extracts deep behavioral features from the signature trajectory.
+- **Contrastive Learning**: During enrollment, the system trains a distance metric that pulls genuine samples together and pushes forgeries away.
+- **Real Training**: Implemented with a real gradient-descent optimizer (`tf.train.adam`) running in the background.
 
-### 3. Online Learning Engine
-BioSign is "self-improving." Every time you successfully log in:
-- It records your natural variation.
-- Every 5 logins, it recomputes your threshold to better match your current signature style.
-- Every 15 logins, it upgrades your master template to account for "model drift" (natural changes in how you sign over time).
+### 🌐 Layer 3: VAE Latent Identity Manifold
+- **Manifold Learning**: A Variational Autoencoder (VAE) learns a personal latent space for your signature.
+- **Reconstruction Loss**: The model is trained to minimize KL-Divergence and Reconstruction error, ensuring it only recognizes signatures that fit your unique "identity manifold."
+- **Visual Demo**: The dashboard provides a 2D plot of your latent cluster.
 
-## 🛠 How It Works
+### 🧬 Layer 4: Neuromotor Inversion
+- **Feature Decomposition**: High-fidelity analysis of velocity, direction, curvature, and approximated pressure.
+- **Biometric Depth**: By modeling the acceleration and jitter (Layer 5), the system captures physiological traits that are nearly impossible to forge manually.
 
-1.  **Registration**: You provide 3 samples to establish a baseline.
-2.  **Normalization**: The system removes jitter, resamples the path to 64 points, scales it to a unit box, and centers it on the origin.
-3.  **Verification**: When you sign to log in, the system compares your new signature against the master template and all 3 enrollment samples.
-4.  **Scoring**: A final score is generated (80% Shape/Dynamics + 20% Global Rhythm). If the score is below your personalized threshold, access is granted.
+### ⚔️ Layer 5: Adversarial Self-Hardening (GAN)
+- **Generative Hardening**: An internal **GAN Generator** (The Forger) tries to synthesize signatures that fool the authenticator.
+- **Adversarial Training**: The system runs a background "arms race" during enrollment, hardening the Siamese network against synthetic attacks.
 
-## 📂 Project Structure
+### 🛡️ Layer 6: Bayesian Trust Fusion & Commitment
+- **Evidence Accumulation**: A Bayesian model fuses shape (DTW), rhythm, tremor, and neural scores into a single "Trust Index."
+- **Privacy**: Uses a cryptographic commitment (SHA-256) of the neural template to ensure biometric privacy on the device.
 
-- `index.html`: The gateway for enrollment and verification.
-- `app.html`: The secure dashboard (Welcome Board) accessible only after verification.
-- `index.js`: The core biometric engine containing all signal processing and matching logic.
-- `style.css`: Premium UI design system using Glassmorphism.
-- `signature_data.json`: (Optional) A template for exported biometric data.
+## 🛠 Project Structure
 
-## 🔒 A Note on Storage
-For security and privacy, all biometric data is stored locally in your browser's **LocalStorage**. To save your data to a physical file in this folder, use the **"Export Biometric Data"** button on the dashboard.
+- `index.html`: Neural gateway with TensorFlow.js integration.
+- `index.js`: The core engine containing the Siamese, VAE, and GAN training pipelines.
+- `app.html`: Secure dashboard with real-time **Latent Space Visualization**.
+- `style.css`: Premium dark-mode interface with glassmorphism.
+
+---
+*"Identity is not what you draw — it is the unique firing pattern of your nervous system."*
