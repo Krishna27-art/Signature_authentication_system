@@ -158,7 +158,6 @@ button.danger:hover {
   opacity: 1;
 }
 
-/* Specific to the Welcome Board in app.html */
 .welcome-board {
     max-width: 700px;
 }

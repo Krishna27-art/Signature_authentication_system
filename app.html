@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
-            overflow: hidden; /* Prevent scrolling for fireworks */
+            overflow: hidden;
         }
         #fireworks-canvas {
             position: fixed;
@@ -74,12 +74,10 @@
     <script src="index.js"></script>
 
     <script>
-        // Guard: redirect to login if not authenticated
         if (localStorage.getItem("authenticated") !== "true") {
             window.location.replace("index.html");
         }
 
-        // Initialize Latent Canvas
         const lCanvas = document.getElementById('latent-canvas');
         const lCtx = lCanvas.getContext('2d');
         function drawLatentPoint(x, y, isGenuine = true) {
@@ -94,11 +92,9 @@
             lCtx.fill();
         }
 
-        // Load stats
         const stats = JSON.parse(localStorage.getItem("sig_stats") || "{}");
         if (stats.lastScore) {
             document.getElementById('latent-stats').textContent = `Trust Score: ${(stats.lastScore * 100).toFixed(1)}%`;
-            // Draw dummy cluster for demo
             lCtx.clearRect(0, 0, lCanvas.width, lCanvas.height);
             for(let i=0; i<10; i++) drawLatentPoint((Math.random()-0.5)*0.3, (Math.random()-0.5)*0.3);
         }
@@ -108,7 +104,6 @@
             window.location.replace("index.html");
         }
 
-        // --- FIREWORKS ANIMATION ---
         const fwCanvas = document.getElementById('fireworks-canvas');
         const fwCtx = fwCanvas.getContext('2d');
         let particles = [];
@@ -160,7 +155,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            fwCtx.fillStyle = 'rgba(15, 23, 42, 0.2)'; // Match root bg
+            fwCtx.fillStyle = 'rgba(15, 23, 42, 0.2)';
             fwCtx.fillRect(0, 0, fwCanvas.width, fwCanvas.height);
             
             particles.forEach((p, i) => {
