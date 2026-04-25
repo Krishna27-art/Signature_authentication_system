@@ -94,7 +94,12 @@ canvas.addEventListener("pointermove", (e) => {
   const { x, y } = getPos(e);
   points.push({ x, y, t: Date.now(), p: e.pressure || 0.5 });
   ctx.lineTo(x, y);
-  ctx.stroke();
+  
+  // Only draw visually during enrollment. 
+  // During verification, it stays "blank" (invisible) for security.
+  if (enrollMode) {
+    ctx.stroke();
+  }
 });
 canvas.addEventListener("pointerup", (e) => {
   e.preventDefault();
@@ -577,16 +582,7 @@ async function verifySignature() {
   console.log(`Threshold   : ${THRESHOLD.toFixed(4)}`);
   console.log(`Result      : ${finalScore < THRESHOLD ? "PASS ✅" : "FAIL ❌"}`);
 
-  const dbg = document.getElementById("debugInfo");
-  if (dbg && dbg.classList.contains("show")) {
-    const logins = JSON.parse(Storage.get("sig_login_history") || "[]").length;
-    dbg.textContent = [
-      `Score     : ${finalScore.toFixed(4)}`,
-      `Threshold : ${THRESHOLD.toFixed(4)}`,
-      `Logins    : ${logins}`,
-      `Next retrain in : ${RETRAIN_EVERY - (logins % RETRAIN_EVERY)} login(s)`,
-    ].join("\n");
-  }
+
 
   if (finalScore < THRESHOLD) {
     if (isAnomalousScore(finalScore))

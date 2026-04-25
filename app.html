@@ -53,20 +53,7 @@
                 <button class="danger" onclick="logout()">Sign Out</button>
             </div>
 
-            <div id="neural-metrics" style="margin-top: 3rem; text-align: left; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--glass-border);">
-                <h3 style="font-size: 0.875rem; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;">Layer 3: Latent Space Cluster</h3>
-                <div style="display: flex; gap: 1.5rem; align-items: center;">
-                    <canvas id="latent-canvas" width="150" height="150" style="background: #000; border-radius: 12px; border: 1px solid var(--accent-primary);"></canvas>
-                    <div>
-                        <p style="font-size: 0.75rem; color: var(--text-secondary);">Your neuromotor identity is mapped to a 2D manifold. Genuine signatures cluster in the center.</p>
-                        <div id="latent-stats" style="margin-top: 0.5rem; font-family: monospace; font-size: 0.7rem; color: var(--accent-secondary);"></div>
-                    </div>
-                </div>
-            </div>
 
-            <p style="margin-top: 2rem; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">
-                <b>Neural Engine:</b> Active. Siamese Identity Embedding is running in the background.
-            </p>
         </div>
     </div>
 
@@ -76,27 +63,6 @@
     <script>
         if (localStorage.getItem("authenticated") !== "true") {
             window.location.replace("index.html");
-        }
-
-        const lCanvas = document.getElementById('latent-canvas');
-        const lCtx = lCanvas.getContext('2d');
-        function drawLatentPoint(x, y, isGenuine = true) {
-            const centerX = lCanvas.width / 2;
-            const centerY = lCanvas.height / 2;
-            const px = centerX + (x * 50);
-            const py = centerY + (y * 50);
-            
-            lCtx.beginPath();
-            lCtx.arc(px, py, 4, 0, Math.PI * 2);
-            lCtx.fillStyle = isGenuine ? '#38bdf8' : '#ef4444';
-            lCtx.fill();
-        }
-
-        const stats = JSON.parse(localStorage.getItem("sig_stats") || "{}");
-        if (stats.lastScore) {
-            document.getElementById('latent-stats').textContent = `Trust Score: ${(stats.lastScore * 100).toFixed(1)}%`;
-            lCtx.clearRect(0, 0, lCanvas.width, lCanvas.height);
-            for(let i=0; i<10; i++) drawLatentPoint((Math.random()-0.5)*0.3, (Math.random()-0.5)*0.3);
         }
 
         function logout() {
