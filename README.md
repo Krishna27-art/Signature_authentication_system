@@ -1,126 +1,92 @@
-# Signature Authentication System
+# BioP2: Advanced AI Signature Authentication System
 
-A production-grade biometric authentication platform that captures and verifies the unique behavioral patterns of a human signature. This version utilizes a **Node.js backend** for persistent, file-based storage.
+BioP2 is a high-security, multi-factor biometric signature verification system. It combines traditional Dynamic Time Warping (DTW) with modern deep learning models (Transformers and Neural Networks) to provide a robust, offline-first authentication solution.
 
----
-*"Identity is not what you draw — it is the unique firing pattern of your nervous system."*
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Tech](https://img.shields.io/badge/stack-React%20%7C%20TF.js%20%7C%20HuggingFace-orange)
+![Security](https://img.shields.io/badge/security-Institutional%20Grade-brightgreen)
 
-## 🚀 Core Features
+## 🌟 Features
 
-### 📂 Server-Backed Persistence
-Unlike standard browser apps, this system uses a local Node.js server to save your biometric data to `signature_data.json`. This ensures your identity profile is never lost when you clear your browser cache.
+- **Triple-Model Verification**:
+    - **Model 1 (Visual)**: Uses HuggingFace's MobileViT to extract 640-dim visual embeddings.
+    - **Model 2 (Behavioral)**: A 3-layer TensorFlow.js neural network trained on motor dynamics.
+    - **Model 3 (Structural)**: Enhanced DTW engine for shape and timing alignment.
+- **Smart Fusion**: 40/30/30 weighted decision scoring for maximum accuracy.
+- **Advanced Anti-Spoofing**:
+    - **Liveness Detection**: Analyzes velocity and acceleration variance.
+    - **Replay Protection**: Timing fingerprinting to detect identical "copy-paste" signatures.
+- **Offline Capability**: Service worker caches AI models (22MB) for full offline verification.
+- **Privacy-First**: All biometric data and AI models are stored and executed locally on the device (IndexedDB).
 
-### 🧠 Advanced Matching Engine
-- **Dynamic Time Warping (DTW)**: A sophisticated signal-processing algorithm that compares signatures regardless of slight variations in speed or timing.
-- **Multi-Feature Analysis**: The system analyzes 6 distinct dimensions:
-    - **Spatial**: X/Y coordinates and trajectory.
-    - **Temporal**: Velocity and rhythm.
-    - **Physiological**: Curvature and stroke-approximated pressure.
+## 🛠 Tech Stack
 
-### 🛡️ Anti-Spoofing Protocol
-- **Liveness Check**: Analyzes the "Coefficient of Variation" in signing speed to detect static traces or slow-drawn forgeries.
-- **Replay Detection**: Generates a fuzzy timing fingerprint to block session-playback attacks.
+- **Frontend**: React 19, Vite, Vanilla CSS.
+- **AI/ML**: 
+    - `@xenova/transformers` (HuggingFace Transformers.js)
+    - `@tensorflow/tfjs` (TensorFlow.js)
+- **Storage**: IndexedDB (via custom wrapper with AES-GCM encryption).
+- **Offline**: Service Workers.
 
-### 📈 Online Learning System
-- **Adaptive Threshold**: The system learns your natural variation over time and adjusts the security threshold automatically every 5 logins.
-- **Template Drift**: Your biometric profile "ages" and updates as your signature gradually changes over months or years.
+## 🚀 Installation
 
----
+```bash
+# Clone the repository
+git clone https://github.com/Krishna27-art/Signature_authentication_system.git
 
-## 🛠️ Project Structure
+# Enter the directory
+cd Signature_authentication_system
 
-- `server.js`: Node.js Express backend for file-system persistence.
-- `index.js`: The core biometric engine (Normalization, DTW, and Security Gates).
-- `index.html`: The interactive signing gateway.
-- `app.html`: Secure user dashboard.
-- `signature_data.json`: The local "vault" where your biometric data is stored.
+# Install dependencies
+npm install
 
----
-
-## 🏁 Quick Start
-
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Start the Server**:
-   ```bash
-   node server.js
-   ```
-
-3. **Access the App**:
-   Open your browser to `http://localhost:3000`
-
----
-
-## 📊 System Architecture
-
-```text
-            ┌──────────────┐
-            │   USER INPUT │
-            └──────┬───────┘
-                   ↓
-        ┌────────────────────┐
-        │  RAW DATA CAPTURE  │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ PREPROCESSING      │
-        │ - Remove Noise     │
-        │ - Remove Dot       │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ NORMALIZATION      │
-        │ - Resample         │
-        │ - Scale            │
-        │ - Center           │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ FEATURE EXTRACTION │
-        │ - Speed            │
-        │ - Direction        │
-        │ - Curvature        │
-        │ - Pressure         │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ SECURITY CHECK     │
-        │ - Liveness         │
-        │ - Replay detect    │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ MATCHING ENGINE    │
-        │ - DTW Algorithm    │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ DECISION           │
-        │ - Threshold check  │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ RESULT             │
-        │ - Accept / Reject  │
-        └──────┬─────────────┘
-               ↓
-        ┌────────────────────┐
-        │ LEARNING SYSTEM    │
-        │ - Update model     │
-        └────────────────────┘
+# Run the development server
+npm run dev
 ```
 
-## 🔐 Data Format
+## 📖 Usage
 
-The system stores its biometric vault in a structured JSON format:
-```json
-{
-  "sig_template": [...],
-  "sig_threshold": 0.142,
-  "sig_login_history": [...],
-  "_savedAt": "2024-01-15T10:30:00.000Z"
-}
+1. **Enrollment**: 
+   - Draw your signature 5 times.
+   - The system will compute a structural template and train your personal behavioral neural network.
+   - AI models will initialize and cache for offline use.
+2. **Verification**: 
+   - Draw your signature on the canvas.
+   - The system analyzes visual shape, motor patterns, and structural timing.
+   - A fused similarity score (0-100) determines if identity is verified.
+3. **Adaptive Learning**: 
+   - The system updates your profile every 5 successful logins to account for natural signature drift.
+
+## 🏗 Project Structure
+
+```txt
+src/
+├── components/          # React components (SignatureCanvas, etc.)
+├── lib/                 # Core Biometric Engines
+│   ├── biometrics.js    # Main orchestration logic
+│   ├── image_model.js   # Transformers.js visual analysis
+│   ├── behavioral_model.js # TF.js behavioral neural net
+│   └── score_fusion.js  # 40/30/30 fusion algorithm
+public/
+└── service_worker.js    # Offline model caching
 ```
+
+## 🔒 Security Policy
+
+This system implements an exponential lockout policy. After 3 failed attempts, the system locks verification for an increasing duration, protecting against brute-force attacks.
+
+## 🤝 Contributing
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+Distributed under the MIT License.
+
+## 👤 Author
+
+**Krishna** - [GitHub](https://github.com/Krishna27-art)

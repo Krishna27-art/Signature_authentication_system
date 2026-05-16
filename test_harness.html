@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BioSign — Automated Test Harness</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e8; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+
+  .controls { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  button {
+    padding: 9px 18px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.02em; transition: opacity .15s;
+  }
+  button:hover { opacity: 0.85; }
+  #btn-all   { background: #6c63ff; color: #fff; }
+  #btn-unit  { background: #1d9e75; color: #fff; }
+  #btn-acc   { background: #ba7517; color: #fff; }
+  #btn-sec   { background: #d85a30; color: #fff; }
+  #btn-clear { background: #333; color: #ccc; }
+
+  .progress-bar { height: 6px; background: #222; border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: #6c63ff; border-radius: 3px; transition: width .2s; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .metric-card { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 10px; padding: 16px; }
+  .metric-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .metric-value { font-size: 28px; font-weight: 700; }
+  .metric-value.good { color: #1d9e75; }
+  .metric-value.warn { color: #ba7517; }
+  .metric-value.bad  { color: #d85a30; }
+  .metric-sub { font-size: 11px; color: #555; margin-top: 4px; }
+
+  .section-title { font-size: 13px; font-weight: 600; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .test-list { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 10px; padding: 12px; margin-bottom: 20px; }
+  .test-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid #222; font-size: 13px; }
+  .test-row:last-child { border-bottom: none; }
+  .badge { min-width: 52px; text-align: center; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; letter-spacing: .05em; }
+  .badge.pass { background: #0a2a1a; color: #1d9e75; }
+  .badge.fail { background: #2a0a0a; color: #d85a30; }
+  .badge.run  { background: #1a1a0a; color: #ba7517; }
+  .badge.skip { background: #1a1a1a; color: #555; }
+  .test-name { flex: 1; }
+  .test-detail { font-size: 11px; color: #555; }
+
+  canvas { display: block; width: 100%; max-width: 600px; border-radius: 10px; background: #1a1a24; border: 1px solid #2a2a3a; margin-bottom: 24px; }
+
+  .log { background: #0d0d15; border: 1px solid #222; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: #6f7; max-height: 200px; overflow-y: auto; }
+  .log .err { color: #f77; }
+  .log .warn { color: #fa3; }
+  .log .info { color: #6af; }
+</style>
+</head>
+<body>
+
+<h1>BioSign — Automated Test Harness</h1>
+<p class="subtitle">No manual drawing required. Synthetic signatures test every scenario automatically.</p>
+
+<div class="controls">
+  <button id="btn-all"   onclick="runAll()">Run all tests</button>
+  <button id="btn-unit"  onclick="runSuite('unit')">Unit tests only</button>
+  <button id="btn-acc"   onclick="runSuite('accuracy')">FAR / FRR only</button>
+  <button id="btn-sec"   onclick="runSuite('security')">Security attacks only</button>
+  <button id="btn-clear" onclick="clearResults()">Clear</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Tests passed</div>
+    <div class="metric-value good" id="m-pass">—</div>
+    <div class="metric-sub" id="m-total">of — tests</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">FAR (false accept)</div>
+    <div class="metric-value" id="m-far">—</div>
+    <div class="metric-sub">Impostors let through</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">FRR (false reject)</div>
+    <div class="metric-value" id="m-frr">—</div>
+    <div class="metric-sub">Real user locked out</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">EER (equal error rate)</div>
+    <div class="metric-value" id="m-eer">—</div>
+    <div class="metric-sub">Target: below 5%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Security attacks blocked</div>
+    <div class="metric-value" id="m-sec">—</div>
+    <div class="metric-sub">Replay + robot + forgery</div>
+  </div>
+</div>
+
+<div class="section-title">ROC curve — FAR vs FRR across thresholds</div>
+<canvas id="roc" width="600" height="200"></canvas>
+
+<div class="section-title">Unit tests</div>
+<div class="test-list" id="list-unit"></div>
+
+<div class="section-title">Accuracy tests (100 genuine + 100 impostor)</div>
+<div class="test-list" id="list-acc"></div>
+
+<div class="section-title">Security attack tests</div>
+<div class="test-list" id="list-sec"></div>
+
+<div class="section-title">Console log</div>
+<div class="log" id="log"></div>
+
+<script>
+// ─── Synthetic generator (inline for browser, no module system needed) ────────────────────────
+
+function gauss(sigma = 1) {
+  const u = 1 - Math.random(), v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sigma;
+}
+
+function bezierPoint(p0, p1, p2, p3, t) {
+  const m = 1 - t;
+  return { x: m**3*p0.x+3*m**2*t*p1.x+3*m*t**2*p2.x+t**3*p3.x, y: m**3*p0.y+3*m**2*t*p1.y+3*m*t**2*p2.y+t**3*p3.y };
+}
+
+function sampleBezier(p0, p1, p2, p3, n = 32) {
+  return Array.from({ length: n }, (_, i) => bezierPoint(p0, p1, p2, p3, i / (n-1)));
+}
+
+function addTiming(pts, speed = 3, t0 = 0) {
+  let t = t0;
+  return pts.map((p, i) => {
+    const prog = i / Math.max(pts.length-1, 1);
+    const speedM = 0.5 + Math.sin(prog * Math.PI) * 0.8 + gauss(0.15);
+    const d = i === 0 ? 1 : Math.hypot(p.x - pts[i-1].x, p.y - pts[i-1].y);
+    t += Math.max(5, d / (speed * Math.max(0.1, speedM)));
+    return { x: p.x, y: p.y, t: Math.round(t) };
+  });
+}
+
+function jitter(pts, sigma) {
+  return pts.map(p => ({ x: p.x + gauss(sigma), y: p.y + gauss(sigma), t: p.t }));
+}
+
+const BLUEPRINTS = {
+  userA: [[{x:100,y:200},{x:130,y:120},{x:200,y:140},{x:220,y:200}],[{x:220,y:200},{x:240,y:240},{x:200,y:280},{x:160,y:260}],[{x:160,y:260},{x:180,y:300},{x:260,y:290},{x:280,y:260}]],
+  userB: [[{x:80,y:150},{x:150,y:100},{x:250,y:180},{x:300,y:150}],[{x:300,y:150},{x:320,y:200},{x:280,y:250},{x:240,y:220}]],
+  userC: [[{x:120,y:180},{x:160,y:100},{x:220,y:160},{x:180,y:220}],[{x:180,y:220},{x:140,y:280},{x:200,y:300},{x:260,y:270}],[{x:260,y:270},{x:300,y:250},{x:310,y:200},{x:280,y:180}]],
+};
+
+function gen(user, sigma = 3, scale = 1.0) {
+  const bp = BLUEPRINTS[user]; let all = [], t = 0;
+  for (const [p0,p1,p2,p3] of bp) {
+    const s = p => ({ x: p.x * scale, y: p.y * scale });
+    const timed = addTiming(sampleBezier(s(p0),s(p1),s(p2),s(p3),32), 3, t);
+    all = all.concat(jitter(timed, sigma));
+    t = all[all.length-1].t + Math.abs(gauss(50)) + 200;
+  }
+  return all;
+}
+
+function genRobot(user = 'userA') {
+  const bp = BLUEPRINTS[user]; let all = [], t = 0;
+  for (const [p0,p1,p2,p3] of bp) {
+    const pts = sampleBezier(p0,p1,p2,p3,32).map((p,i) => ({x:p.x,y:p.y,t:t+i*20}));
+    t = pts[pts.length-1].t + 200; all = all.concat(pts);
+  }
+  return all;
+}
+
+function genImpostor(enrolled) {
+  const others = Object.keys(BLUEPRINTS).filter(u => u !== enrolled);
+  return gen(others[Math.floor(Math.random() * others.length)], 5);
+}
+
+// ─── Minimal stub versions of your functions (replace with your real ones) ───────────────────
+// DELETE this section and use your real index.js functions once connected.
+
+function normalizePath(pts) {
+  if (!pts || pts.length < 2) return Array(64).fill({ x: 0, y: 0 });
+  let end = pts.length;
+  while (end > 10) {
+    const last = pts[end - 1];
+    const cluster = pts.slice(end - 5, end);
+    const spread = Math.max(...cluster.map(p => Math.hypot(p.x - last.x, p.y - last.y)));
+    if (spread < 5 && (last.t - pts[end - 5].t) > 300) { end -= 5; } else break;
+  }
+  const trimmed = pts.slice(0, end);
+  const xs = trimmed.map(p => p.x), ys = trimmed.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1, range = Math.max(rangeX, rangeY);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const normalized = trimmed.map(p => ({ x: (p.x - cx) / range * 2, y: (p.y - cy) / range * 2 }));
+  const result = [];
+  for (let i = 0; i < 64; i++) {
+    const idx = i / 63 * (normalized.length - 1);
+    const lo = Math.floor(idx), hi = Math.ceil(idx), frac = idx - lo;
+    result.push({ x: normalized[lo].x * (1-frac) + normalized[hi].x * frac, y: normalized[lo].y * (1-frac) + normalized[hi].y * frac });
+  }
+  return result;
+}
+
+function dtwDistance(a, b) {
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n }, () => Array(m).fill(Infinity));
+  dp[0][0] = Math.hypot(a[0].x - b[0].x, a[0].y - b[0].y);
+  for (let i = 1; i < n; i++) dp[i][0] = dp[i-1][0] + Math.hypot(a[i].x-b[0].x, a[i].y-b[0].y);
+  for (let j = 1; j < m; j++) dp[0][j] = dp[0][j-1] + Math.hypot(a[0].x-b[j].x, a[0].y-b[j].y);
+  for (let i = 1; i < n; i++) for (let j = 1; j < m; j++)
+    dp[i][j] = Math.hypot(a[i].x-b[j].x, a[i].y-b[j].y) + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[n-1][m-1] / (n + m);
+}
+
+function extractFeatures(pts) {
+  if (pts.length < 2) return Array(8).fill(0);
+  const speeds = [];
+  for (let i = 1; i < pts.length; i++) {
+    const dt = pts[i].t - pts[i-1].t || 1;
+    speeds.push(Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y) / dt);
+  }
+  const avg = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+  const std = Math.sqrt(speeds.reduce((s, v) => s + (v - avg)**2, 0) / speeds.length);
+  const cov = avg > 0 ? std / avg : 0;
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const w = Math.max(...xs) - Math.min(...xs) || 1, h = Math.max(...ys) - Math.min(...ys) || 1;
+  let dirChanges = 0;
+  for (let i = 2; i < pts.length; i++) {
+    const a1 = Math.atan2(pts[i-1].y - pts[i-2].y, pts[i-1].x - pts[i-2].x);
+    const a2 = Math.atan2(pts[i].y - pts[i-1].y, pts[i].x - pts[i-1].x);
+    if (Math.abs(a2 - a1) > 0.5) dirChanges++;
+  }
+  const totalTime = (pts[pts.length-1].t - pts[0].t) || 1;
+  return [pts.length, avg, cov, totalTime, dirChanges, w/h, std, speeds.length];
+}
+
+function detectLiveness(pts) {
+  const features = extractFeatures(pts);
+  const speedCoV = features[2];
+  return { isLive: speedCoV > 0.2, speedCoV };
+}
+
+function detectReplay(a, b) {
+  if (a.length !== b.length) return { isReplay: false, confidence: 0 };
+  let diffs = 0;
+  for (let i = 0; i < a.length; i++) diffs += Math.hypot(a[i].x-b[i].x, a[i].y-b[i].y) + Math.abs(a[i].t-b[i].t);
+  const avgDiff = diffs / a.length;
+  const isReplay = avgDiff < 0.01;
+  return { isReplay, confidence: isReplay ? 1 : Math.max(0, 1 - avgDiff / 50) };
+}
+
+function authenticate(attempt, template) {
+  const liveness = detectLiveness(attempt);
+  if (!liveness.isLive) return { score: 0, granted: false, reason: 'liveness_fail' };
+  const normA = normalizePath(attempt);
+  const normT = normalizePath(template);
+  const dist = dtwDistance(normA, normT);
+  const score = Math.max(0, 100 - dist * 400);
+  return { score, granted: score >= 60 };
+}
+
+// ─── Test runner ─────────────────────────────────────────────────────────────
+
+let results = { pass: 0, fail: 0, tests: [] };
+let farData = [], frrData = [];
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  el.innerHTML += `<div class="${type}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function addTestRow(listId, name, status, detail = '') {
+  const el = document.getElementById(listId);
+  el.innerHTML += `<div class="test-row"><span class="badge ${status}">${status.toUpperCase()}</span><span class="test-name">${name}</span><span class="test-detail">${detail}</span></div>`;
+}
+
+function assert(name, condition, detail, listId) {
+  const status = condition ? 'pass' : 'fail';
+  if (condition) results.pass++; else results.fail++;
+  results.tests.push({ name, status });
+  addTestRow(listId, name, status, detail);
+  log(`[${status.toUpperCase()}] ${name} ${detail}`, condition ? 'info' : 'err');
+}
+
+function updateMetrics() {
+  const total = results.pass + results.fail;
+  document.getElementById('m-pass').textContent = results.pass;
+  document.getElementById('m-total').textContent = `of ${total} tests`;
+  const pct = total ? (results.pass / total * 100).toFixed(0) : 0;
+  document.getElementById('progress').style.width = pct + '%';
+  document.getElementById('m-pass').className = 'metric-value ' + (pct >= 90 ? 'good' : pct >= 70 ? 'warn' : 'bad');
+}
+
+// ─── Suite: Unit tests ───────────────────────────────────────────────────────
+
+function runUnitTests() {
+  document.getElementById('list-unit').innerHTML = '';
+  log('── Unit tests ──', 'info');
+
+  const norm = normalizePath(gen('userA'));
+  assert('normalizePath: outputs 64 points', norm.length === 64, `got ${norm.length}`, 'list-unit');
+
+  const inBox = norm.every(p => Math.abs(p.x) <= 1.1 && Math.abs(p.y) <= 1.1);
+  assert('normalizePath: all points within unit box', inBox, '', 'list-unit');
+
+  const full = normalizePath(gen('userA', 1, 1.0));
+  const small = normalizePath(gen('userA', 1, 0.7));
+  const scaleDist = dtwDistance(full, small);
+  assert('normalizePath: scale-invariant (70% size)', scaleDist < 0.25, `dtw=${scaleDist.toFixed(4)}`, 'list-unit');
+
+  const withDot = gen('userA');
+  const last = withDot[withDot.length - 1];
+  for (let i = 0; i < 8; i++) withDot.push({ x: last.x + gauss(0.3), y: last.y + gauss(0.3), t: last.t + 400 + i * 50 });
+  const nDot = normalizePath(withDot);
+  const nNoDot = normalizePath(gen('userA'));
+  const dotDist = dtwDistance(nDot, nNoDot);
+  assert('normalizePath: trailing dot removed correctly', dotDist < 0.25, `dtw=${dotDist.toFixed(4)}`, 'list-unit');
+
+  const a = normalizePath(gen('userA'));
+  const selfDist = dtwDistance(a, a);
+  assert('dtwDistance: same signature → 0', selfDist < 0.0001, `got ${selfDist}`, 'list-unit');
+
+  const b = normalizePath(gen('userA'));
+  const genDist = dtwDistance(a, b);
+  assert('dtwDistance: two genuine attempts < 0.3', genDist < 0.3, `dist=${genDist.toFixed(4)}`, 'list-unit');
+
+  const imp = normalizePath(genImpostor('userA'));
+  const impDist = dtwDistance(a, imp);
+  assert('dtwDistance: genuine vs impostor > 0.3', impDist > 0.3, `dist=${impDist.toFixed(4)}`, 'list-unit');
+
+  const sym1 = normalizePath(gen('userA')), sym2 = normalizePath(gen('userB'));
+  const d1 = dtwDistance(sym1, sym2), d2 = dtwDistance(sym2, sym1);
+  assert('dtwDistance: symmetric', Math.abs(d1 - d2) < 0.0001, `|d1-d2|=${Math.abs(d1-d2).toFixed(6)}`, 'list-unit');
+
+  const liveResult = detectLiveness(gen('userA'));
+  assert('detectLiveness: genuine signature is live', liveResult.isLive, `CoV=${liveResult.speedCoV.toFixed(3)}`, 'list-unit');
+
+  const robotResult = detectLiveness(genRobot('userA'));
+  assert('detectLiveness: robot signature fails liveness', !robotResult.isLive, `CoV=${robotResult.speedCoV.toFixed(3)}`, 'list-unit');
+
+  const original = gen('userA');
+  const replay = original.map(p => ({ ...p }));
+  const replayResult = detectReplay(original, replay);
+  assert('detectReplay: perfect copy detected', replayResult.isReplay, `conf=${replayResult.confidence.toFixed(3)}`, 'list-unit');
+
+  const diff = gen('userA');
+  const diffResult = detectReplay(original, diff);
+  assert('detectReplay: different attempt NOT flagged', !diffResult.isReplay, '', 'list-unit');
+
+  const f = extractFeatures(gen('userA'));
+  assert('extractFeatures: returns 8 values', f.length === 8, `got ${f.length}`, 'list-unit');
+  const allFinite = f.every(Number.isFinite);
+  assert('extractFeatures: no NaN or Infinity', allFinite, '', 'list-unit');
+
+  updateMetrics();
+}
+
+// ─── Suite: Accuracy (FAR/FRR) ───────────────────────────────────────────────
+
+async function runAccuracyTests() {
+  document.getElementById('list-acc').innerHTML = '';
+  log('── Accuracy tests ──', 'info');
+
+  const N = 100;
+  const enrollmentSigs = [gen('userA'), gen('userA'), gen('userA')];
+  const template = normalizePath(enrollmentSigs[0]);
+
+  let genuineScores = [], impostorScores = [];
+
+  for (let i = 0; i < N; i++) {
+    const { score } = authenticate(gen('userA', 3 + Math.random() * 4), template);
+    genuineScores.push(score);
+    if (i % 10 === 0) { updateMetrics(); await new Promise(r => setTimeout(r, 0)); }
+  }
+
+  for (let i = 0; i < N; i++) {
+    const { score } = authenticate(genImpostor('userA'), template);
+    impostorScores.push(score);
+    if (i % 10 === 0) { updateMetrics(); await new Promise(r => setTimeout(r, 0)); }
+  }
+
+  const thresholds = Array.from({ length: 20 }, (_, i) => i * 5);
+  farData = []; frrData = [];
+
+  for (const threshold of thresholds) {
+    const far = impostorScores.filter(s => s >= threshold).length / N * 100;
+    const frr = genuineScores.filter(s => s < threshold).length / N * 100;
+    farData.push({ t: threshold, v: far });
+    frrData.push({ t: threshold, v: frr });
+  }
+
+  let eer = null, eerThreshold = null;
+  for (let i = 0; i < farData.length; i++) {
+    if (Math.abs(farData[i].v - frrData[i].v) < 5) {
+      eer = (farData[i].v + frrData[i].v) / 2;
+      eerThreshold = thresholds[i];
+    }
+  }
+
+  const far60 = farData[12]?.v?.toFixed(1) ?? '—';
+  const frr60 = frrData[12]?.v?.toFixed(1) ?? '—';
+
+  document.getElementById('m-far').textContent = far60 + '%';
+  document.getElementById('m-far').className = 'metric-value ' + (parseFloat(far60) < 10 ? 'good' : 'bad');
+  document.getElementById('m-frr').textContent = frr60 + '%';
+  document.getElementById('m-frr').className = 'metric-value ' + (parseFloat(frr60) < 10 ? 'good' : 'bad');
+  if (eer !== null) {
+    document.getElementById('m-eer').textContent = eer.toFixed(1) + '%';
+    document.getElementById('m-eer').className = 'metric-value ' + (eer < 8 ? 'good' : eer < 15 ? 'warn' : 'bad');
+  }
+
+  assert('FAR below 10% at threshold 60', parseFloat(far60) < 10, `FAR=${far60}%`, 'list-acc');
+  assert('FRR below 10% at threshold 60', parseFloat(frr60) < 10, `FRR=${frr60}%`, 'list-acc');
+  assert('EER below 10%', eer !== null && eer < 10, `EER=${eer?.toFixed(1) ?? '?'}%`, 'list-acc');
+  assert('All 100 genuine scores computed', genuineScores.length === N, '', 'list-acc');
+  assert('All 100 impostor scores computed', impostorScores.length === N, '', 'list-acc');
+
+  const genuineMean = genuineScores.reduce((a,b) => a+b, 0) / N;
+  const impostorMean = impostorScores.reduce((a,b) => a+b, 0) / N;
+  assert('Genuine mean score > impostor mean', genuineMean > impostorMean, `genuine=${genuineMean.toFixed(1)}, impostor=${impostorMean.toFixed(1)}`, 'list-acc');
+
+  drawROC();
+  updateMetrics();
+}
+
+// ─── Suite: Security attacks ─────────────────────────────────────────────────
+
+function runSecurityTests() {
+  document.getElementById('list-sec').innerHTML = '';
+  log('── Security attack tests ──', 'info');
+
+  const enrollSig = gen('userA');
+  const template = normalizePath(enrollSig);
+  let secBlocked = 0, secTotal = 0;
+
+  for (let i = 0; i < 10; i++) {
+    const replay = enrollSig.map(p => ({ ...p }));
+    const { isReplay } = detectReplay(enrollSig, replay);
+    secTotal++;
+    if (isReplay) secBlocked++;
+  }
+  assert('Replay attack: 10/10 exact copies detected', secBlocked === 10, `blocked ${secBlocked}/10`, 'list-sec');
+
+  let robotBlocked = 0;
+  for (let i = 0; i < 10; i++) {
+    const { isLive } = detectLiveness(genRobot('userA'));
+    if (!isLive) robotBlocked++;
+  }
+  assert('Robot signature: 10/10 liveness fails', robotBlocked === 10, `blocked ${robotBlocked}/10`, 'list-sec');
+
+  let forgeryBlocked = 0;
+  for (let i = 0; i < 20; i++) {
+    const forgery = gen('userA', 18);
+    const { granted } = authenticate(forgery, template);
+    if (!granted) forgeryBlocked++;
+  }
+  assert('Shaky forgery: ≥15/20 blocked', forgeryBlocked >= 15, `blocked ${forgeryBlocked}/20`, 'list-sec');
+
+  let bruteBlocked = 0;
+  for (let i = 0; i < 20; i++) {
+    const noise = Array.from({ length: 60 }, (_, j) => ({
+      x: Math.random() * 300 + 50, y: Math.random() * 200 + 100, t: j * 30
+    }));
+    const { granted } = authenticate(noise, template);
+    if (!granted) bruteBlocked++;
+  }
+  assert('Brute force random: ≥18/20 blocked', bruteBlocked >= 18, `blocked ${bruteBlocked}/20`, 'list-sec');
+
+  let scaleAttackBlocked = 0;
+  for (let i = 0; i < 10; i++) {
+    const imp = genImpostor('userA');
+    const { granted } = authenticate(imp, template);
+    if (!granted) scaleAttackBlocked++;
+  }
+  assert('Impostor scale attack: ≥8/10 blocked', scaleAttackBlocked >= 8, `blocked ${scaleAttackBlocked}/10`, 'list-sec');
+
+  const totalBlocked = robotBlocked + secBlocked + forgeryBlocked + bruteBlocked + scaleAttackBlocked;
+  const totalAttacks = 10 + 10 + 20 + 20 + 10;
+  document.getElementById('m-sec').textContent = totalBlocked + '/' + totalAttacks;
+  document.getElementById('m-sec').className = 'metric-value ' + (totalBlocked / totalAttacks >= 0.9 ? 'good' : 'warn');
+
+  updateMetrics();
+}
+
+// ─── ROC Chart ───────────────────────────────────────────────────────────────
+
+function drawROC() {
+  const canvas = document.getElementById('roc');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = 40;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1a24';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+
+  ctx.fillStyle = '#666'; ctx.font = '11px system-ui';
+  ctx.fillText('0%', pad - 16, H - pad + 4);
+  ctx.fillText('100%', pad - 5, pad + 4);
+  ctx.fillText('Threshold →', W / 2 - 30, H - 10);
+
+  const toX = t => pad + (t / 100) * (W - 2 * pad);
+  const toY = v => H - pad - (v / 100) * (H - 2 * pad);
+
+  ctx.strokeStyle = '#d85a30'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  farData.forEach((d, i) => i === 0 ? ctx.moveTo(toX(d.t), toY(d.v)) : ctx.lineTo(toX(d.t), toY(d.v)));
+  ctx.stroke();
+
+  ctx.strokeStyle = '#1d9e75'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  frrData.forEach((d, i) => i === 0 ? ctx.moveTo(toX(d.t), toY(d.v)) : ctx.lineTo(toX(d.t), toY(d.v)));
+  ctx.stroke();
+
+  ctx.fillStyle = '#d85a30'; ctx.fillRect(W - 120, 14, 12, 3);
+  ctx.fillStyle = '#aaa'; ctx.font = '11px system-ui'; ctx.fillText('FAR (false accept)', W - 104, 18);
+  ctx.fillStyle = '#1d9e75'; ctx.fillRect(W - 120, 30, 12, 3);
+  ctx.fillStyle = '#aaa'; ctx.fillText('FRR (false reject)', W - 104, 34);
+}
+
+// ─── Controls ────────────────────────────────────────────────────────────────
+
+function clearResults() {
+  results = { pass: 0, fail: 0, tests: [] };
+  farData = []; frrData = [];
+  ['list-unit', 'list-acc', 'list-sec'].forEach(id => document.getElementById(id).innerHTML = '');
+  document.getElementById('log').innerHTML = '';
+  ['m-pass','m-far','m-frr','m-eer','m-sec'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('progress').style.width = '0%';
+  const canvas = document.getElementById('roc');
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+async function runSuite(suite) {
+  if (suite === 'unit')     runUnitTests();
+  if (suite === 'accuracy') await runAccuracyTests();
+  if (suite === 'security') runSecurityTests();
+}
+
+async function runAll() {
+  clearResults();
+  runUnitTests();
+  await runAccuracyTests();
+  runSecurityTests();
+  log('── All suites complete ──', 'info');
+}
+</script>
+</body>
+</html>
